@@ -1,0 +1,5 @@
+.DS_Store
+
+# Ignore test output
+test/*_output_*.*
+test/*_raw_*.*

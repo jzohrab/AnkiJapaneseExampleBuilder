@@ -1,0 +1,4 @@
+一般に	いっぱんに	(adv) in general; (P)
+下層	かそう	(n,adj-no) lower strata (classes)
+実行環境	じっこうかんきょう	(n) execution environment
+遂に	ついに	finally, at last, in the end

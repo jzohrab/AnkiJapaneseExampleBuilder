@@ -1,0 +1,6 @@
+# Test dictionary
+a:
+  - [ 'aj1', 'ae1' ]
+  - [ 'aj2', 'ae2' ]
+b:
+  - [ 'bj1', 'be1' ]
