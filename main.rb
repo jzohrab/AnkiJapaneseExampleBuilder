@@ -170,7 +170,11 @@ def get_selection_number(prompt, min, max)
   n
 end
 
-def get_data(lines, provider, num_sentences, pronounciation_offset)
+# For each line in the file, return array of "useful" parts
+# { :word => "", :pronounciation => "", :parts => [], :sentences => [] }
+def get_data_array(filepath, word_index, pronounciation_offset)
+  lines = File.read(filepath).split("\n")
+
   data = lines.select { |lin| (lin || "").strip != "" }.map do |lin|
     parts = lin.split("\t").map { |s| s.strip }
 
@@ -182,7 +186,7 @@ def get_data(lines, provider, num_sentences, pronounciation_offset)
       end
     end
 
-    { :word => parts[0], :pronounciation => parts[pronounciation_offset], :parts => parts, :sentences => [] }
+    { :word => parts[0], :pronounciation => parts[pronounciation_offset], :parts => parts }
   end
 
   # Ensure all data lines have the same number of parts - Anki balks
@@ -196,6 +200,13 @@ def get_data(lines, provider, num_sentences, pronounciation_offset)
     end
     exit 1
   end
+
+  return data
+end
+
+def get_sentences(data, provider, num_sentences)
+
+  data.map! { |d| d[:sentences] = []; d }
 
   # Imiwa exports words with multiple variants, which breaks WWWJDIC
   # lookup.  Get user input on which should be the actual word used for
@@ -349,13 +360,14 @@ if (!File.exist?(input))
   puts "Invalid/missing file name"
   exit 1
 end
-lines = File.read(input).split("\n")
 
 provider =
   options[:testdata].nil? ? WWWJDICExampleProvider.new() : 
   TestFileExampleProvider.new(options[:testdata])
 num_sentences = options[:excount]
 po = options[:pronounciation_offset]
-data = get_data(lines, provider, num_sentences, po)
+
+rawdata = get_data_array(input, 0, po)
+data = get_sentences(rawdata, provider, num_sentences)
 
 output_files(data, input, options)
