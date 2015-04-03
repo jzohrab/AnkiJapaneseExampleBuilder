@@ -177,6 +177,15 @@ def get_data_array(filepath, word_index, pronounciation_offset)
     split("\n").
     select { |lin| (lin || "").strip != "" }
 
+  if (rawdata[0] == "Word,Kana,Romaji,English,Class") then
+    # JPod101 wordbank export
+    rawdata = rawdata[1..-1] # drop the first line
+    rawdata.map! do |lin|
+      a, b, c, d, e = lin.split(",")
+      [a, b, d].join("\t")
+    end
+  end
+
   data = rawdata.
     map { |lin| lin.split("\t").map { |s| s.strip } }.
     map { |parts_array| remove_imiwa_cruft(parts_array) }.
