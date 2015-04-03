@@ -173,21 +173,14 @@ end
 # For each line in the file, return array of "useful" parts
 # { :word => "", :pronounciation => "", :parts => [], :sentences => [] }
 def get_data_array(filepath, word_index, pronounciation_offset)
-  lines = File.read(filepath).split("\n")
+  rawdata = File.read(filepath).
+    split("\n").
+    select { |lin| (lin || "").strip != "" }
 
-  data = lines.select { |lin| (lin || "").strip != "" }.map do |lin|
-    parts = lin.split("\t").map { |s| s.strip }
-
-    # imiwa files have two junk fields at the beginning
-    if (["jmdict", "kanjidic"].include?(parts[0].downcase))
-      parts = parts[2..-1]
-      if (parts[parts.size - 1] == "Favorites")
-        parts = parts[0..(parts.size - 2)]
-      end
-    end
-
-    { :word => parts[0], :pronounciation => parts[pronounciation_offset], :parts => parts }
-  end
+  data = rawdata.
+    map { |lin| lin.split("\t").map { |s| s.strip } }.
+    map { |parts_array| remove_imiwa_cruft(parts_array) }.
+    map { |parts| { :word => parts[0], :pronounciation => parts[pronounciation_offset], :parts => parts } }
 
   # Ensure all data lines have the same number of parts - Anki balks
   # when there are different field counts.
@@ -202,6 +195,17 @@ def get_data_array(filepath, word_index, pronounciation_offset)
   end
 
   return data
+end
+
+def remove_imiwa_cruft(parts)
+  # imiwa files have two junk fields at the beginning
+  if (["jmdict", "kanjidic"].include?(parts[0].downcase))
+    parts = parts[2..-1]
+    if (parts[parts.size - 1] == "Favorites")
+      parts = parts[0..(parts.size - 2)]
+    end
+  end
+  parts
 end
 
 def get_sentences(data, provider, num_sentences)
