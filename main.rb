@@ -25,6 +25,8 @@
 
 require 'optparse'
 require 'yaml'
+require 'uri'
+require 'net/http'
 
 
 ############################
@@ -43,9 +45,26 @@ end
 # Calls WWWJDIC backdoor, gets example sentences for word.
 # Does raw html parsing.
 class WWWJDICExampleProvider < ExampleProvider
+
+  # Available sources and mirrors
+  SOURCES = {
+    'm' => "http://www.csse.monash.edu.au/~jwb/cgi-bin/wwwjdic.cgi",
+    'e' => "http://www.edrdg.org/cgi-bin/wwwjdic/wwwjdic"
+  }
+
+  def initialize(src)
+    @src = src
+  end
+
   def get_sentences(word)
-    url="http://www.csse.monash.edu.au/~jwb/cgi-bin/wwwjdic.cgi?1ZEU#{word}=1"
-    ret = `curl -s #{url}`
+    url= "#{WWWJDICExampleProvider::SOURCES[@src]}"
+    uri = URI(url)
+
+    params = { "1ZEU#{word}" => 1 }
+    uri.query = URI.encode_www_form(params)
+    res = Net::HTTP.get_response(uri)
+    ret = res.body.force_encoding("UTF-8") if res.is_a?(Net::HTTPSuccess)
+
     data = ret.gsub(/.*\<pre\>/m, '').gsub(/\<\/pre\>.*/m, '')
     sentences = data.split("\n").select { |s| s =~ /^A/ }
     sentences.map! do |s|
@@ -80,7 +99,8 @@ def parse_args(args)
     :console => false,
     :raw => false,
     :pronounciation_offset => 1,
-    :definition_offset => 2
+    :definition_offset => 2,
+    :url => "m"
   }
 
   opt_parser = OptionParser.new do |opts|
@@ -96,6 +116,9 @@ def parse_args(args)
     end
     opts.on("-n N", Integer, "Number of example sentences, default 5") do |n|
       options[:excount] = n
+    end
+    opts.on("-u U", String, "Source url (#{WWWJDICExampleProvider::SOURCES.to_s}), default #{options[:url]}") do |u|
+      options[:url] = u
     end
 
     opts.separator ""
@@ -375,7 +398,7 @@ if (!File.exist?(input))
 end
 
 provider =
-  options[:testdata].nil? ? WWWJDICExampleProvider.new() : 
+  options[:testdata].nil? ? WWWJDICExampleProvider.new(options[:url]) :
   TestFileExampleProvider.new(options[:testdata])
 num_sentences = options[:excount]
 po = options[:pronounciation_offset]
